@@ -1,0 +1,35 @@
+providers:
+  - Namu\WireChat\WireChatServiceProvider
+  - Workbench\App\Providers\WorkbenchServiceProvider
+  - Livewire\LivewireServiceProvider
+
+migrations:
+ # - workbench\database\migrations
+  #- database\migrations
+
+
+seeders:
+  - Workbench\Database\Seeders\DatabaseSeeder
+
+#laravel: "./skeleton"
+
+workbench:
+  start: '/'
+  install: true
+  purge:
+  discovers:
+    web: true
+    api: true
+    commands: true
+    components: true
+    views: true
+  build: [
+      - drop-sqlite-db
+      - create-sqlite-db
+      #- vendor:publish --tag="wirechat-migrations"
+      #- migrate:refresh
+
+  ]
+  assets: []
+  sync: [
+  ]
