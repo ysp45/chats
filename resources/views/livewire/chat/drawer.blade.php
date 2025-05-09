@@ -63,7 +63,7 @@
                             });
                         }
 
-                        //Check if should completley destroy component on close 
+                        //Check if should completley destroy component on close
                         //Meaning state won't be retained if component is opened again
                         if (this.destroyOnClose === true) {
                             Livewire.dispatch('destroyChatDrawer', {
@@ -112,14 +112,14 @@
                             }, 300);
                         }
 
-                        
-                        // Fetch modal attributes and set Alpine properties 
+
+                        // Fetch modal attributes and set Alpine properties
                         const attributes = this.$wire.get('drawerComponents')[id]?.modalAttributes || {};
                         this.closeOnEscape = attributes.closeOnEscape ?? false;
                         this.closeOnEscapeIsForceful = attributes.closeOnEscapeIsForceful ?? false;
                         this.dispatchCloseEvent = attributes.dispatchCloseEvent ?? false;
-                        this.destroyOnClose = attributes.destroyOnClose ?? true; 
-                        this.closeModalOnClickAway = attributes.closeModalOnClickAway ?? false; 
+                        this.destroyOnClose = attributes.destroyOnClose ?? true;
+                        this.closeModalOnClickAway = attributes.closeModalOnClickAway ?? false;
 
 
                         this.$nextTick(() => {
@@ -131,7 +131,7 @@
                             }
                         });
 
-         
+
                     },
 
                     setShowPropertyTo(show) {
@@ -166,16 +166,16 @@
             }
         </script>
     @endscript
-    <div 
+    <div
     data-modal-type="ChatDrawer"
     id="chat-drawer"
     x-data="ChatDrawer()" x-on:close.stop="setShowPropertyTo(false)"
          x-on:keydown.escape.stop="closeChatDrawerOnEscape({ modalType: 'ChatDrawer', event: $event }); "
          x-show="show"
-         class="fixed bg-[var(--wc-light-primary)] dark:bg-[var(--wc-dark-primary)]  dark:text-white opacity-100 inset-0 z-50 h-full overflow-y-auto" style="display: none;"
+         class="fixed bg-[var(--wc-light-primary)] dark:bg-zinc-900  dark:text-white opacity-100 inset-0 z-50 h-full overflow-y-auto" style="display: none;"
          aria-modal="true"
          tabindex="0"
-    
+
         >
         <div class="justify-center text-center relative">
             <div x-show="show && showActiveComponent" x-transition:enter="ease-out duration-300"
@@ -194,8 +194,4 @@
             </div>
         </div>
     </div>
-
-
-
-
 </div>

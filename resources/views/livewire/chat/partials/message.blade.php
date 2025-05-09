@@ -1,79 +1,75 @@
 @use('Namu\WireChat\Facades\WireChat')
 
-
 @php
+$isSameAsNext = ($message?->sendable_id === $nextMessage?->sendable_id) && ($message?->sendable_type === $nextMessage?->sendable_type);
+$isNotSameAsNext = !$isSameAsNext;
+$isSameAsPrevious = ($message?->sendable_id === $previousMessage?->sendable_id) && ($message?->sendable_type === $previousMessage?->sendable_type);
+$isNotSameAsPrevious = !$isSameAsPrevious;
 
-   $isSameAsNext = ($message?->sendable_id === $nextMessage?->sendable_id) && ($message?->sendable_type === $nextMessage?->sendable_type);
-   $isNotSameAsNext = !$isSameAsNext;
-   $isSameAsPrevious = ($message?->sendable_id === $previousMessage?->sendable_id) && ($message?->sendable_type === $previousMessage?->sendable_type);
-   $isNotSameAsPrevious = !$isSameAsPrevious;
+// Check if the message is short and single-line (≤50 characters and no line breaks)
+$isShortSingleLine = $message?->body && strlen($message?->body) <= 50 && !str_contains($message?->body, "\n");
 @endphp
 
 <div
+    {{-- We use style here to make it easy for dynamic and safe injection --}}
+    @style([
+        'background-color:var(--wc-brand-primary)' => $belongsToAuth == true
+    ])
 
-
-{{-- We use style here to make it easy for dynamic and safe injection --}}
-@style([
-'background-color:var(--wc-brand-primary)' => $belongsToAuth==true
-])
-
-@class([
-    'flex flex-wrap max-w-fit text-[15px] border border-gray-200/40 dark:border-none rounded-xl p-2.5 flex flex-col text-black bg-[#f6f6f8fb]',
-    'text-white' => $belongsToAuth, // Background color for messages sent by the authenticated user
-    'bg-[var(--wc-light-secondary)] dark:bg-[var(--wc-dark-secondary)] dark:text-white' => !$belongsToAuth,
-
-    // Message styles based on position and ownership
-
-    // RIGHT
-    // First message on RIGHT
-    'rounded-br-md rounded-tr-2xl' => ($isSameAsNext && $isNotSameAsPrevious && $belongsToAuth),
-
-    // Middle message on RIGHT
-    'rounded-r-md' => ($isSameAsPrevious && $belongsToAuth),
-
-    // Standalone message RIGHT
-    'rounded-br-xl rounded-r-xl' => ($isNotSameAsPrevious && $isNotSameAsNext && $belongsToAuth),
-
-    // Last Message on RIGHT
-    'rounded-br-2xl' => ($isNotSameAsNext && $belongsToAuth),
-
-    // LEFT
-    // First message on LEFT
-    'rounded-bl-md rounded-tl-2xl' => ($isSameAsNext && $isNotSameAsPrevious && !$belongsToAuth),
-
-    // Middle message on LEFT
-    'rounded-l-md' => ($isSameAsPrevious && !$belongsToAuth),
-
-    // Standalone message LEFT
-    'rounded-bl-xl rounded-l-xl' => ($isNotSameAsPrevious && $isNotSameAsNext && !$belongsToAuth),
-
-    // Last message on LEFT
-    'rounded-bl-2xl' => ($isNotSameAsNext && !$belongsToAuth),
-])
->
-@if (!$belongsToAuth && $isGroup)
-<div    
     @class([
-        'shrink-0 font-medium text-purple-500',
-        // Hide avatar if the next message is from the same user
-        'hidden' => $isSameAsPrevious
-    ])>
-    {{ $message?->sendable?->display_name }}
-</div>
-@endif
+        'flex flex-wrap max-w-fit border border-gray-200/40 dark:border-none rounded-xl p-2.5 flex flex-col text-black bg-[#f6f6f8fb]',
+        'text-white' => $belongsToAuth,
+        'bg-gray-200 dark:bg-zinc-700 text-gray-800 dark:text-zinc-200' => !$belongsToAuth,
 
-<pre class="whitespace-pre-line tracking-normal text-sm md:text-base dark:text-white lg:tracking-normal"
-    style="font-family: inherit;">
-    {{$message?->body}}
-</pre>
+        // Message styles based on position and ownership
+        // RIGHT
+        'rounded-br-md rounded-tr-2xl' => ($isSameAsNext && $isNotSameAsPrevious && $belongsToAuth),
+        'rounded-r-md' => ($isSameAsPrevious && $belongsToAuth),
+        'rounded-br-xl rounded-r-xl' => ($isNotSameAsPrevious && $isNotSameAsNext && $belongsToAuth),
+        'rounded-br-2xl' => ($isNotSameAsNext && $belongsToAuth),
 
-{{-- Display the created time based on different conditions --}}
-<span
-@class(['text-[11px] ml-auto ',  'text-gray-700 dark:text-gray-300' => !$belongsToAuth,'text-gray-100' => $belongsToAuth])>
-    @php
-        // If the message was created today, show only the time (e.g., 1:00 AM)
-        echo $message?->created_at->format('H:i');
-    @endphp
-</span>
+        // LEFT
+        'rounded-bl-md rounded-tl-2xl' => ($isSameAsNext && $isNotSameAsPrevious && !$belongsToAuth),
+        'rounded-l-md' => ($isSameAsPrevious && !$belongsToAuth),
+        'rounded-bl-xl rounded-l-xl' => ($isNotSameAsPrevious && $isNotSameAsNext && !$belongsToAuth),
+        'rounded-bl-2xl' => ($isNotSameAsNext && !$belongsToAuth),
+    ])
+>
+    @if (!$belongsToAuth && $isGroup)
+        <div
+            @class([
+                'shrink-0 font-medium text-purple-500',
+                'hidden' => $isSameAsPrevious
+            ])
+        >
+            {{ $message?->sendable?->display_name }}
+        </div>
+    @endif
+
+    <div class="flex w-full">
+        <div @class([
+            'flex items-end' => $isShortSingleLine,
+            'flex flex-col items-end' => !$isShortSingleLine,
+        ])>
+            <div class="flex-1">
+                <pre
+                    class="whitespace-pre-line text-sm tracking-normal dark:text-white"
+                    style="font-family: inherit;"
+                >{{ $message?->body }}</pre>
+            </div>
+
+            <span
+                @class([
+                    'text-[11px] shrink-0',
+                    'ml-2' => $isShortSingleLine, // margin kiri saat pendek
+                    'mt-1' => !$isShortSingleLine, // margin atas saat panjang
+                    'text-gray-700 dark:text-gray-300' => !$belongsToAuth,
+                    'text-gray-100' => $belongsToAuth,
+                ])
+            >
+                {{ $message?->created_at->format('H:i') }}
+            </span>
+        </div>
+    </div>
 
 </div>

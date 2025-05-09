@@ -20,20 +20,20 @@
 
     }
 
-    }"  
+    }"
         x-init="
 
         setTimeout(() => {
 
                 requestAnimationFrame(() => {
-                    
+
                     this.height = $el.scrollHeight;
                     $el.scrollTop = this.height;
                 });
 
-            }, 300); //! Add delay so height can be update at right time 
+            }, 300); //! Add delay so height can be update at right time
 
-     
+
         "
     @scroll ="
         scrollTop= $el.scrollTop;
@@ -59,13 +59,13 @@
             {{-- scroll the element down --}}
             $el.scrollTop = $el.scrollHeight;
 
-            {{-- After updating the chat height, overflowY is set back to 'auto', 
-                which allows the browser to determine whether to display the scrollbar 
+            {{-- After updating the chat height, overflowY is set back to 'auto',
+                which allows the browser to determine whether to display the scrollbar
                 based on the content height.  --}}
                $el.style.overflowY='auto';
         });
     "
-    
+
 
     x-cloak
      class='flex flex-col h-full  relative gap-2 gap-y-4 p-4 md:p-5 lg:p-8  grow  overscroll-contain overflow-x-hidden w-full my-auto'
@@ -76,7 +76,7 @@
     <div x-cloak wire:loading.delay.class.remove="invisible" wire:target="loadMore" class="invisible transition-all duration-300 ">
         <x-wirechat::loading-spin />
     </div>
- 
+
     {{-- Define previous message outside the loop --}}
     @php
         $previousMessage = null;
@@ -88,7 +88,7 @@
         @foreach ($loadedMessages as $date => $messageGroup)
 
             {{-- Date  --}}
-            <div  class="sticky top-0 uppercase p-2 shadow-xs px-2.5 z-50 rounded-xl border dark:border-[var(--wc-dark-primary)] border-[var(--wc-light-primary)] text-sm flex text-center justify-center  bg-[var(--wc-light-secondary)] dark:bg-[var(--wc-dark-secondary)] dark:text-white  w-28 mx-auto ">
+            <div  class="sticky top-0 uppercase p-1 shadow-xs px-2.5 z-50 rounded-xl border dark:border-[var(--wc-dark-primary)] border-zinc-400 text-sm flex text-center justify-center  bg-[var(--wc-light-secondary)] dark:bg-[var(--wc-dark-secondary)] dark:text-white  w-28 mx-auto ">
                 {{ $date }}
             </div>
 
@@ -147,12 +147,12 @@
 
 
                                     @php
-                                    $sender = $message?->ownedBy($this->auth) 
-                                        ? __('wirechat::chat.labels.you') 
+                                    $sender = $message?->ownedBy($this->auth)
+                                        ? __('wirechat::chat.labels.you')
                                         : ($message->sendable?->display_name ?? __('wirechat::chat.labels.user'));
 
-                                    $receiver = $parent?->ownedBy($this->auth) 
-                                        ? __('wirechat::chat.labels.you') 
+                                    $receiver = $parent?->ownedBy($this->auth)
+                                        ? __('wirechat::chat.labels.you')
                                         : ($parent->sendable?->display_name ?? __('wirechat::chat.labels.user'));
                                     @endphp
 
@@ -197,9 +197,9 @@
                                 @if (($isGroup && $conversation->group?->allowsMembersToSendMessages()) || $authParticipant->isAdmin())
                                 <div dusk="message_actions" @class([ 'my-auto flex  w-auto  items-center gap-2', 'order-1' => !$belongsToAuth, ])>
                                     {{-- reply button --}}
-                                    <button wire:click="setReply('{{ encrypt($message->id) }}')"
+                                    <button wire:click="setReply('{{ $message->id }}')"
                                         class=" invisible  group-hover:visible hover:scale-110 transition-transform">
-                                    
+
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                                             fill="currentColor" class="bi bi-reply-fill w-4 h-4 dark:text-white"
                                             viewBox="0 0 16 16">
@@ -225,18 +225,20 @@
                                         <x-slot name="content">
 
                                             @if ($message->ownedBy($this->auth)|| ($authParticipant->isAdmin() && $isGroup))
-                                                <button dusk="delete_message_for_everyone" wire:click="deleteForEveryone('{{ encrypt($message->id) }}')"
-                                                    wire:confirm="{{ __('wirechat::chat.actions.delete_for_everyone.confirmation_message') }}" class="w-full text-start">
-                                                    <x-wirechat::dropdown-link>
-                                                        @lang('wirechat::chat.actions.delete_for_everyone.label')
-                                                    </x-wirechat::dropdown-link>
-                                                </button>
+                                            @can('chat-all')
+                                            <button dusk="delete_message_for_everyone" wire:click="deleteForEveryone('{{ $message->id }}')"
+                                                wire:confirm="{{ __('wirechat::chat.actions.delete_for_everyone.confirmation_message') }}" class="w-full text-start">
+                                                <x-wirechat::dropdown-link>
+                                                    @lang('wirechat::chat.actions.delete_for_everyone.label')
+                                                </x-wirechat::dropdown-link>
+                                            </button>
+                                            @endcan
                                             @endif
 
 
                                             {{-- Dont show delete for me if is group --}}
-                                            @if (!$isGroup) 
-                                            <button dusk="delete_message_for_me" wire:click="deleteForMe('{{ encrypt($message->id) }}')"
+                                            @if (!$isGroup)
+                                            <button dusk="delete_message_for_me" wire:click="deleteForMe('{{ $message->id }}')"
                                                 wire:confirm="{{ __('wirechat::chat.actions.delete_for_me.confirmation_message') }}" class="w-full text-start">
                                                 <x-wirechat::dropdown-link>
                                                     @lang('wirechat::chat.actions.delete_for_me.label')
@@ -245,13 +247,13 @@
                                             @endif
 
 
-                                            <button dusk="reply_to_message_button" wire:click="setReply('{{ encrypt($message->id) }}')"class="w-full text-start">
+                                            <button dusk="reply_to_message_button" wire:click="setReply('{{ $message->id }}')"class="w-full text-start">
                                                 <x-wirechat::dropdown-link>
                                                     @lang('wirechat::chat.actions.reply.label')
                                                 </x-wirechat::dropdown-link>
                                             </button>
 
-                                      
+
                                         </x-slot>
                                     </x-wirechat::dropdown>
 
@@ -314,12 +316,9 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
             @endforeach
         @endforeach
-
-
     @endif
 
 </main>

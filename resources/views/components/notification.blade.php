@@ -1,10 +1,8 @@
-
 @use('Namu\WireChat\Facades\WireChat')
 
 @if(auth()->check() && WireChat::notificationsEnabled())
 
-   <div dusk="notification_manager"
-        x-data="{
+<div dusk="notification_manager" x-data="{
         showNotification(e) {
             const message = e.message;
             const redirect_url = e.redirect_url;
@@ -67,7 +65,7 @@
 
 
           const notification=   new Notification(title, options);
-                
+
             notification.onclick = (event) => {
                 event.preventDefault();
                 const convId = message.conversation_id || 'default';
@@ -90,8 +88,7 @@
                         .catch(err => console.error('Wirechat Service Worker registration failed:', err));
                 }
             }
-        }"
-        x-init="
+        }" x-init="
         registerServiceWorker();
 
         userId = @js(auth()->id());
@@ -121,15 +118,17 @@
             const conversation = event.detail.conversation;
             const tag = 'wirechat-notification-' + conversation;
 
-            if (navigator.serviceWorker.controller) {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
                 navigator.serviceWorker.controller.postMessage({
                     type: 'CLOSE_NOTIFICATION',
                     tag: tag
                 });
+            } else {
+                console.log('No active service worker controller found.');
             }
         });
     ">
-    </div>
+</div>
 
 
 @endif

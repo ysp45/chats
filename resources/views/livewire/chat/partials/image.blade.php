@@ -9,9 +9,9 @@
    $isNotSameAsPrevious = !$isSameAsPrevious;
 @endphp
 
+<x-lightbox id="single-image-lightbox" />
 
-
-<img @class([ 
+<img @class([
 
         'max-w-max  h-[200px] min-h-[210px] bg-[var(--wc-light-secondary)] dark:bg-[var(--wc-dark-secondary)]   object-scale-down  grow-0 shrink  overflow-hidden  rounded-3xl',
 
@@ -38,6 +38,8 @@
 
         // Last message on LEFT
         'rounded-bl-2xl' => ($isNotSameAsNext && !$belongsToAuth),
-        ]) 
-        
-        loading="lazy" src="{{$attachment?->url}}" alt="{{  __('wirechat::chat.labels.attachment') }}">
+        ])
+
+        loading="lazy" src="{{$attachment?->url}}"
+        @click="$dispatch('open-lightbox', { url: '{{$attachment?->url}}', alt: 'Attachment' })"
+        alt="{{  __('wirechat::chat.labels.attachment') }}">
