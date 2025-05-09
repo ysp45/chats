@@ -20,10 +20,9 @@ class Chat extends Component
 
         // Check if the user belongs to the conversation
         abort_unless(auth()->user()->belongsToConversation($this->conversation), 403);
-
     }
 
-    #[Title('Chats')]
+    #[Title('Online Chat | e-Counseling Sleman')]
     public function render()
     {
         return view('wirechat::livewire.pages.chat')
