@@ -27,7 +27,7 @@ use Namu\WireChat\Models\Participant;
 /**
  * Chat Component
  *
- * Handles group, private and self conversations .
+ * Handles group, private and self conversations.
  *
  * @property \Illuminate\Contracts\Auth\Authenticatable|null $auth
  */
@@ -318,8 +318,27 @@ class Chat extends Component
      * Send a message  */
     public function sendMessage()
     {
-
         abort_unless(auth()->check(), 401);
+        
+        // Check if user has permission to send messages
+        if (!$this->auth->can('chat-all')) {
+            // For users with chat-specific permission, check if they're chatting with a psychologist
+            if ($this->auth->can('chat-specific')) {
+                $hasPsychologist = $this->conversation->participants()
+                    ->whereHas('participantable', function ($query) {
+                        $query->whereHas('psychologist', function ($q) {
+                            $q->where('online_chat', true);
+                        });
+                    })
+                    ->exists();
+                
+                if (!$hasPsychologist) {
+                    abort(403, 'You can only chat with available psychologists.');
+                }
+            } else {
+                abort(403, 'You do not have permission to send messages.');
+            }
+        }
 
         // rate limit
         $this->rateLimit();
@@ -529,7 +548,6 @@ class Chat extends Component
         $authParticipant = $this->conversation->participant($this->auth);
 
         // make sure user is authenticated
-
         abort_unless(auth()->check(), 401);
 
         // make sure user owns message OR allow if is admin in group
@@ -589,7 +607,7 @@ class Chat extends Component
         // Ensure loadedMessages is a Collection
         $this->loadedMessages = collect($this->loadedMessages);
 
-        // Use tap to create a new group if it doesn’t exist, then push the message
+        // Use tap to create a new group if it doesn't exist, then push the message
         $this->loadedMessages->put($groupKey, $this->loadedMessages->get($groupKey, collect())->push($message));
     }
 
@@ -634,11 +652,8 @@ class Chat extends Component
     // used to broadcast message sent to receiver
     protected function dispatchMessageCreatedEvent(Message $message): void
     {
-
         // Dont dispatch if it is a selfConversation
-
         if ($this->conversation->isSelf()) {
-
             return;
         }
 
@@ -646,23 +661,18 @@ class Chat extends Component
         // we add try catch to avoid runtime error when broadcasting services are not connected
         // todo create a job to broadcast multiple messages
         try {
-
-            // event(new BroadcastMessageEvent($message,$this->conversation));
-
-            // !remove the receiver from the messageCreated and add it to the job instead
-            // !also do not forget to exlude auth user or message owner from particpants
-            // todo: maybe also broadcast for self conversation , incase user is using multiple devices
-            // sleep(3);
+            // Broadcast the message directly without using a queue
             broadcast(new MessageCreated($message))->toOthers();
 
-            // notify participants if conversation is NOT self
+            // Notify participants if conversation is NOT self
             $isSelf = $this->conversation->isSelf();
             /** @var bool $isSelf */
-            if (! $isSelf) {
-                NotifyParticipants::dispatch($this->conversation, $message);
+            if (!$isSelf) {
+                // Create and handle the notification job immediately
+                $job = new NotifyParticipants($this->conversation, $message);
+                $job->handle();
             }
         } catch (\Throwable $th) {
-
             Log::error($th->getMessage());
         }
     }
@@ -670,9 +680,6 @@ class Chat extends Component
     /** Send Like as  message */
     public function sendLike()
     {
-
-        // sleep(2);
-
         // rate limit
         $this->rateLimit();
 
@@ -716,7 +723,6 @@ class Chat extends Component
     public function loadMessages()
     {
         // Get total message count
-
         // Fetch paginated messages
         /* @var Message $message */
         $messages = $this->conversation->messages()
@@ -748,7 +754,6 @@ class Chat extends Component
     public function mount($conversation = null)
     {
         // dd(config('wirechat.attachments.storage_disk'));
-
         // dd(Storage::disk()->url('/'));
 
         $this->initializeConversation($conversation);
@@ -776,6 +781,24 @@ class Chat extends Component
             abort(422, __('wirechat::chat.messages.conversation_id_required')); // Custom error for missing input
         } else {
             return abort(422, __('wirechat::chat.messages.invalid_conversation_input')); // Handle invalid input types
+        }
+
+        // Check permissions for viewing this conversation
+        if (!$this->auth->can('chat-all')) {
+            // For users with chat-specific permission, check if they're chatting with a psychologist
+            if ($this->auth->can('chat-specific')) {
+                $hasPsychologist = $this->conversation->participants()
+                    ->whereHas('participantable', function ($query) {
+                        $query->whereHas('psychologist', function ($q) {
+                            $q->where('online_chat', true);
+                        });
+                    })
+                    ->exists();
+                
+                if (!$hasPsychologist) {
+                    abort(403, 'You can only chat with available psychologists.');
+                }
+            }
         }
 
         // $this->conversation = Conversation::where('id', $conversation)->firstOr(fn () => abort(404));
@@ -827,11 +850,9 @@ class Chat extends Component
 
     public function finalizeConversationState()
     {
-
         $this->conversation->markAsRead();
 
         if ($this->authParticipant) {
-
             $this->authParticipant->update(['last_active_at' => now()]);
 
             // If has deletd Conversation and Deletion has expired

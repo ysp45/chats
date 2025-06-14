@@ -196,20 +196,50 @@ class Chats extends Component
         $perPage = 10;
         $offset = ($this->page - 1) * $perPage;
 
-        $additionalConversations = $this->auth->conversations()
-            ->with([
-                'lastMessage.sendable',
-                'group.cover' => fn($query) => $query->select('id', 'url', 'attachable_type', 'attachable_id', 'file_path'),
-            ])
-            ->when(trim($this->search ?? '') != '', fn($query) => $this->applySearchConditions($query))
-            ->when(trim($this->search ?? '') == '', function ($query) {
-                /** @phpstan-ignore-next-line */
-                return $query->withoutDeleted()->withoutBlanks();
-            })
-            ->latest('updated_at')
-            ->skip($offset)
-            ->take($perPage)
-            ->get();
+        // Check if user has chat-all permission
+        if ($this->auth->can('chat-all')) {
+            $additionalConversations = $this->auth->conversations()
+                ->with([
+                    'lastMessage.sendable',
+                    'group.cover' => fn($query) => $query->select('id', 'url', 'attachable_type', 'attachable_id', 'file_path'),
+                ])
+                ->when(trim($this->search ?? '') != '', fn($query) => $this->applySearchConditions($query))
+                ->when(trim($this->search ?? '') == '', function ($query) {
+                    /** @phpstan-ignore-next-line */
+                    return $query->withoutDeleted()->withoutBlanks();
+                })
+                ->latest('updated_at')
+                ->skip($offset)
+                ->take($perPage)
+                ->get();
+        } else {
+            // User can only chat with psychologists who have online_chat=true
+            $additionalConversations = $this->auth->conversations()
+                ->with([
+                    'lastMessage.sendable',
+                    'group.cover' => fn($query) => $query->select('id', 'url', 'attachable_type', 'attachable_id', 'file_path'),
+                ])
+                ->when(trim($this->search ?? '') != '', fn($query) => $this->applySearchConditions($query))
+                ->when(trim($this->search ?? '') == '', function ($query) {
+                    /** @phpstan-ignore-next-line */
+                    return $query->withoutDeleted()->withoutBlanks();
+                })
+                ->whereHas('participants', function ($query) {
+                    $query->where(function ($q) {
+                        $q->where('participantable_id', $this->auth->id)
+                          ->where('participantable_type', $this->auth->getMorphClass());
+                    })
+                    ->orWhereHas('participantable', function ($q) {
+                        $q->whereHas('psychologist', function ($q) {
+                            $q->where('online_chat', true);
+                        });
+                    });
+                })
+                ->latest('updated_at')
+                ->skip($offset)
+                ->take($perPage)
+                ->get();
+        }
 
         // Set participants manually where needed
         $additionalConversations->each(function ($conversation) {
@@ -290,7 +320,11 @@ class Chats extends Component
                     $query2->where(function ($query3) use ($searchableFields, &$columnCache) {
                         $table = $query3->getModel()->getTable();
                         foreach ($searchableFields as $field) {
-                            if ($this->columnExists($table, $field, $columnCache)) {
+                            if (! isset($columnCache[$table])) {
+                                $columnCache[$table] = Schema::getColumnListing($table);
+                            }
+
+                            if (in_array($field, $columnCache[$table])) {
                                 $query3->orWhere($field, 'LIKE', '%' . $this->search . '%');
                             }
                         }
