@@ -17,7 +17,6 @@ class PermissionSeeder extends Seeder
     {
         // Create permissions
         Permission::create(['name' => 'chat-all']);
-        Permission::create(['name' => 'chat-specific']);
         
         // Create roles
         $adminRole = Role::create(['name' => 'admin']);
@@ -27,10 +26,8 @@ class PermissionSeeder extends Seeder
         // Assign permissions to roles
         $adminRole->givePermissionTo('chat-all');
         $psychologistRole->givePermissionTo('chat-all');
-        $userRole->givePermissionTo('chat-specific');
         
         // Assign roles to users (example)
-        // You would typically do this in a separate seeder or when creating users
         // $admin = User::find(1);
         // $admin->assignRole('admin');
         

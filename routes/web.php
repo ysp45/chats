@@ -16,7 +16,7 @@ Route::middleware(config('wirechat.routes.middleware'))
 // Route to create a conversation with a psychologist
 Route::get('/create-conversation/{psychologist}', function (User $psychologist) {
     // Check if the user has the required permission
-    if (!auth()->user()->can('chat-specific')) {
+    if (!auth()->user()->psychologist && !$psychologist->psychologist) {
         abort(403, 'Unauthorized action.');
     }
     

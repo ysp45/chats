@@ -31,27 +31,23 @@ class AuthServiceProvider extends ServiceProvider
                 return true;
             }
             
-            // Users with chat-specific permission can only view conversations with psychologists
-            if ($user->can('chat-specific')) {
-                // Check if the conversation involves a psychologist with online_chat=true
-                $hasPsychologist = $conversation->participants()
-                    ->whereHas('participantable', function ($query) {
-                        $query->whereHas('psychologist', function ($q) {
-                            $q->where('online_chat', true);
-                        });
-                    })
-                    ->exists();
+            // Users without special permissions can only view conversations with psychologists
+            // Check if the conversation involves a psychologist with online_chat=true
+            $hasPsychologist = $conversation->participants()
+                ->whereHas('participantable', function ($query) {
+                    $query->whereHas('psychologist', function ($q) {
+                        $q->where('online_chat', true);
+                    });
+                })
+                ->exists();
                 
-                // Check if the user is a participant in the conversation
-                $isParticipant = $conversation->participants()
-                    ->where('participantable_id', $user->id)
-                    ->where('participantable_type', $user->getMorphClass())
-                    ->exists();
-                
-                return $hasPsychologist && $isParticipant;
-            }
+            // Check if the user is a participant in the conversation
+            $isParticipant = $conversation->participants()
+                ->where('participantable_id', $user->id)
+                ->where('participantable_type', $user->getMorphClass())
+                ->exists();
             
-            return false;
+            return $hasPsychologist && $isParticipant;
         });
     }
 }

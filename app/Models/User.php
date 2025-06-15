@@ -109,27 +109,21 @@ class User extends Authenticatable
             return true;
         }
         
-        // For users with chat-specific permission, check if they're part of the conversation
+        // For users without special permissions, check if they're part of the conversation
         // and if it's with a psychologist who has online_chat=true
-        if ($this->can('chat-specific')) {
-            // Check if the user is a direct participant
-            $isParticipant = parent::belongsToConversation($conversation, $withoutGlobalScopes);
-            
-            if ($isParticipant) {
-                return true;
-            }
-            
-            // Check if the conversation involves a psychologist with online_chat=true
-            return $conversation->participants()
-                ->whereHas('participantable', function ($query) {
-                    $query->whereHas('psychologist', function ($q) {
-                        $q->where('online_chat', true);
-                    });
-                })
-                ->exists();
+        $isParticipant = parent::belongsToConversation($conversation, $withoutGlobalScopes);
+        
+        if ($isParticipant) {
+            return true;
         }
         
-        // Default to parent implementation for regular users
-        return parent::belongsToConversation($conversation, $withoutGlobalScopes);
+        // Check if the conversation involves a psychologist with online_chat=true
+        return $conversation->participants()
+            ->whereHas('participantable', function ($query) {
+                $query->whereHas('psychologist', function ($q) {
+                    $q->where('online_chat', true);
+                });
+            })
+            ->exists();
     }
 }
